@@ -14,18 +14,22 @@ if (empty($application_dir) || realpath($application_dir) === false || !is_reada
     }
 }
 
+$is_standalone = false;
+
 // local configuration folder contains files with e.g. sensitive (uncommitted) data put there via provisioning
-$local_config_dir = @$local_config_dir ?: getenv('APP_LOCAL_CONFIG_DIR');
-if (empty($local_config_dir) || realpath($local_config_dir) === false || !is_readable($local_config_dir)) {
-    // convention here: the application_dir is thought to be a FQDN like "myapp.local"
-    $local_config_dir = realpath('/usr/local/' . basename($application_dir));
-    if (empty($local_config_dir) || !is_readable($local_config_dir)) {
-        throw new Exception(
-            'Local configuration directory non-existant or not readable: ' . '/usr/local/' . basename($application_dir)
-        );
-    }
-    if (!putenv('APP_LOCAL_CONFIG_DIR=' . $local_config_dir)) {
-        throw new Exception('Local configuration directory could not be set via putenv.');
+if (!$is_standalone) {
+    $local_config_dir = @$local_config_dir ?: getenv('APP_LOCAL_CONFIG_DIR');
+    if (empty($local_config_dir) || realpath($local_config_dir) === false || !is_readable($local_config_dir)) {
+        // convention here: the application_dir is thought to be a FQDN like "myapp.local"
+        $local_config_dir = realpath('/usr/local/' . basename($application_dir));
+        if (empty($local_config_dir) || !is_readable($local_config_dir)) {
+            throw new Exception(
+                'Local configuration directory non-existant or not readable: ' . '/usr/local/' . basename($application_dir)
+            );
+        }
+        if (!putenv('APP_LOCAL_CONFIG_DIR=' . $local_config_dir)) {
+            throw new Exception('Local configuration directory could not be set via putenv.');
+        }
     }
 }
 
@@ -80,7 +84,12 @@ if (preg_match('/^development.*/', AgaviConfig::get('core.clean_environment'))) 
 }
 
 // bootstrap the app
-Agavi::bootstrap(AgaviConfig::get('core.environment'));
+if ($is_standalone) {
+    $environment = 'standalone';
+} else {
+    $environment = AgaviConfig::get('core.environment');
+}
+Agavi::bootstrap($environment);
 
 // load local settings (from APP_LOCAL_CONFIG_DIR)
 require AgaviConfigCache::checkConfig($application_dir . '/app/config/local_configuration.xml');

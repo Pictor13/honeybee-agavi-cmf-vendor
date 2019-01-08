@@ -151,6 +151,8 @@ define([
         this.init(dom_element, default_options);
         this.addOptions(options);
 
+        this.keepDompurifyConfigConsistent(options);
+
         // a custom sanitization function may be specified for initial setHTML call and pasting content
         if (typeof this.options.sanitizeToDOMFragment !== 'function') {
             this.options.squire_config.sanitizeToDOMFragment = function(html, is_paste, squire_instance) {
@@ -633,6 +635,198 @@ define([
 
     HtmlRichTextEditor.prototype.isLink = function() {
         return this.queryCommandState('A');
+    };
+
+    // changes to Squire config should be correctly reflected in DOMPurify config
+    HtmlRichTextEditor.prototype.keepDompurifyConfigConsistent = function(options) {
+        var squire_config = this.options.squire_config;
+        var default_config = default_config;
+        var sync_config = this.options.dompurify_sync_config;
+        var paste_config = this.options.dompurify_paste_config;
+        // ensure DOMPurify doesn't forbid the blockTag configured for Squire
+        if (_.isString(squire_config.blockTag)) {
+            var squire_block_tag = _.lowerCase(squire_config.blockTag);
+            // default config
+            _.pull(default_config['FORBID_TAGS'], squire_block_tag);
+            default_config['ALLOWED_TAGS'] = [ squire_block_tag ].concat(default_config['ALLOWED_TAGS'] || []);
+            // paste config
+            _.pull(paste_config['FORBID_TAGS'], squire_block_tag);
+            paste_config['ALLOWED_TAGS'] = [ squire_block_tag ].concat(paste_config['ALLOWED_TAGS'] || []);
+            // sync config
+            _.pull(sync_config['FORBID_TAGS'], squire_block_tag);
+            sync_config['ALLOWED_TAGS'] = [ squire_block_tag ].concat(sync_config['ALLOWED_TAGS'] || []);
+        }
+        // ensure DOMPurify doesn't forbid the blockAttributes configured for Squire
+        if (_.isPlainObject(squire_config.blockAttributes)) {
+            var block_attribute_names = _.keys(squire_config.blockAttributes);
+            // default config
+            _.pullAll(default_config['FORBID_ATTR'], block_attribute_names);
+            default_config['ALLOWED_ATTR'] = block_attribute_names.concat(default_config['ALLOWED_ATTR'] || []);
+            // paste config
+            _.pullAll(paste_config['FORBID_ATTR'], block_attribute_names);
+            paste_config['ALLOWED_ATTR'] = block_attribute_names.concat(paste_config['ALLOWED_ATTR'] || []);
+            // sync config
+            _.pullAll(sync_config['FORBID_ATTR'], block_attribute_names);
+            sync_config['ALLOWED_ATTR'] = block_attribute_names.concat(sync_config['ALLOWED_ATTR'] || []);
+        }
+    }
+
+    /*
+        Temp unit-test
+
+        DO NOT USE THIS METHOD! It can modify curent configuration
+        (for testing purposes) and resulting in different behaviour of the widget.
+    */
+    HtmlRichTextEditor.prototype.runTests = function() {
+
+        var testDOMPurifyConfigOnSyncSanitization = function() {
+            var fixtures = {
+                '<br>': '<br>',
+                '<div><br></div>': '<div><br></div>',
+                '<div class="hb-paragraph"><br></div>': '<div class="hb-paragraph"><br></div>',
+                '<span>': '',
+                '<span>foo</span>': 'foo',
+                '<div style="display:none;">foo</div>': '<div>foo</div>',
+                '<div style="display:none;" onclick="maliciousFunction();">foo</div>': '<div>foo</div>',
+                '<button style="display:none;" onclick="maliciousFunction();">foo</button>': 'foo'
+            };
+
+            for(var fixture in fixtures) {
+                var $returned_element = $(DOMPurify.sanitize(fixture, this.options.dompurify_sync_config));
+                var $expected_element = $(fixtures[fixture]);
+// console.log('test fixture:', fixtures[fixture],
+//             'return val:', DOMPurify.sanitize(fixture, this.options.dompurify_sync_config),
+//             'return $:', $returned_element,
+//             'expected $:', $expected_element);
+                if (_.isUndefined($returned_element.get(0)) && $expected_element.length !== 0) {
+                    throw 'Test with fixture "'+fixture+'" returns nothing, while '+$expected_element.length+' elements were expected.';
+                } else if (!_.isUndefined($returned_element.get(0)) && $returned_element.get(0).isEqualNode($expected_element.get(0)) === false) {
+                    throw 'Test with return value "'+$returned_element.html()+'" doesn\'t reflect the expected value "'+$expected_element.html()+'".';
+                }
+            }
+            return true;
+        };
+
+//         var testDOMPurifyConfigOnPasteSanitization = function() {
+//             var fixtures = {
+//                 '<br>': '<br>',
+//                 '<div><br></div>': '<div><br></div>',
+//                 '<div class="hb-paragraph"><br></div>': '<div class="hb-paragraph"><br></div>',
+//                 '<span>': '',
+//                 '<span>foo</span>': 'foo',
+//                 '<div style="display:none;">foo</div>': '<div>foo</div>',
+//                 '<div style="display:none;" onclick="maliciousFunction();">foo</div>': '<div>foo</div>',
+//                 '<button style="display:none;" onclick="maliciousFunction();">foo</button>': 'foo'
+//             };
+
+//             for(var fixture in fixtures) {
+//                 var $returned_element = $(DOMPurify.sanitize(fixture, this.options.dompurify_sync_config));
+//                 var $expected_element = $(fixtures[fixture]);
+// // console.log('test fixture:', fixtures[fixture],
+// //             'return val:', DOMPurify.sanitize(fixture, this.options.dompurify_sync_config),
+// //             'return $:', $returned_element,
+// //             'expected $:', $expected_element);
+//                 if (_.isUndefined($returned_element.get(0)) && $expected_element.length !== 0) {
+//                     throw 'Test with fixture "'+fixture+'" returns nothing, while '+$expected_element.length+' elements were expected.';
+//                 } else if (!_.isUndefined($returned_element.get(0)) && $returned_element.get(0).isEqualNode($expected_element.get(0)) === false) {
+//                     throw 'Test with return value "'+$returned_element.html()+'" doesn\'t reflect the expected value "'+$expected_element.html()+'".';
+//                 }
+//             }
+//             return true;
+//         };
+
+//         var testDOMPurifyConfigOnDefaultSanitization = function() {
+//              test the case of missing the 'target' attribute when reloading the data
+//         }
+
+        var testInputNotChangedBySanitization = function() {
+            var unchanging_fixtures = [
+                '',
+                'simple spaced text',
+                '<a href="http://www.berlinonline.de" target="_blank">Link opening in new window</a>',
+                '<br>Line-break and some text',
+                '<div>Simple div</div>',
+                '<div class="hb-paragraph"><br></div> Empty-line and some text',
+                'span',
+            ];
+            for(var index in unchanging_fixtures) {
+                var fixture = unchanging_fixtures[index];
+                if (!compareMarkup(this.sanitize(fixture), fixture)) {
+                    throw 'Test of fixture "'+fixture+'" failed. Returned value was "' +
+                        _.isUndefined(this.sanitize(fixture))
+                            ? ('undefined", while '+ $(fixture).length +' elements were expected.')
+                            : $(fixture).html() +'".';
+                }
+            }
+            return true;
+        };
+
+        var testInputChangedBySanitization = function() {
+            var changing_fixtures = {
+                '<br>': '',
+                '<div><br></div>': '',
+                '<div class="hb-paragraph"><br></div>': '',
+                '<span>': '',
+                '<span>foo</span>': 'foo',
+                '<div style="display:none;">foo</div>': '<div>foo</div>',
+                '<button style="display:none;" onclick="maliciousFunction();">foo</button>': 'foo'
+            };
+            for(var fixture in changing_fixtures) {
+                var expected_value = changing_fixtures[fixture];
+                var returned_value = this.sanitize(fixture);
+                if (expected_value !== returned_value) {
+                    throw 'Test with return value "'+returned_value+'" doesn\'t reflect the expected value "'+expected_value+'".';
+                }
+            }
+            return true;
+        };
+
+        var testChangesToEditorConfig = function() {
+            // reset options
+            this.options = {};
+            this.addOptions(default_options, options);
+
+
+            different_editor_block = { blockTag: 'p', blockAttributes: null };
+            this.options.squire_config = _.merge({}, this.options.squire_config, different_editor_block);
+
+            this.editor = this.createSquireInstance();
+            // consistent options
+            this.keepDompurifyConfigConsistent();
+
+            if (this.sanitize('<p><br></p>') !== '') {
+                throw 'Test with return value "'+this.sanitize('<p><br></p>')+'" doesn\'t reflect the expected value "".';
+            }
+            if (this.sanitize('<div><br></div>') !== '') {
+                throw 'Test with return value "'+this.sanitize('<div><br></div>')+'" doesn\'t reflect the expected value "".';
+            }
+            if (this.sanitize('<br>') !== '') {
+                throw 'Test with return value "'+this.sanitize('<br>')+'" doesn\'t reflect the expected value "".';
+            }
+            if (this.sanitize('Wrap<br>Text') !== 'Wrap<br>Text') {
+                throw 'Test with return value "'+this.sanitize('Wrap<br>Text')+'" doesn\'t reflect the expected value "Wrap<br>Text".';
+            }
+            if (this.sanitize('<div>Wrap<br>Text</div>') !== 'Wrap<br>Text') {
+                throw 'Test with return value "'+this.sanitize('<div>Wrap<br>Text</div>')+'" doesn\'t reflect the expected value "Wrap<br>Text".';
+            }
+        };
+
+        var compareMarkup = function(markup_a, markup_b) {
+            var $element_a = $(markup_a);
+            var $element_b = $(markup_b);
+            if (_.isUndefined($element_a.get(0)) && $element_b.length !== 0) {
+                return false;
+            } else if (!_.isUndefined($element_a.get(0)) && $element_a.get(0).isEqualNode($element_b.get(0)) === false) {
+                return false;
+            }
+            return true;
+        };
+
+        testDOMPurifyConfigOnSyncSanitization.call(this);
+        testInputNotChangedBySanitization.call(this);
+        testInputChangedBySanitization.call(this);
+        testChangesToEditorConfig.call(this);
+        console.log('✔︎ - All tests ran successfully.');
     };
 
     return HtmlRichTextEditor;

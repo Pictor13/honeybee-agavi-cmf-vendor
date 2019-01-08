@@ -8,6 +8,8 @@ define([
        If applied to other elements provide target_selector and getTargetVal.
 
         @todo: count can differ depending on the browser counting "\r|\n|\r\n" as newline
+
+        @todo: should provide an object implementing a CountableTargetInterface: onTargetInput, checkTargetValiditiy, getTargetVal
     */
 
     var default_options = {

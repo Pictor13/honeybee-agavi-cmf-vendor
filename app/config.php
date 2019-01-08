@@ -1,9 +1,11 @@
 <?php
 
 // determine local configuration directory
-$local_config_dir = @$local_config_dir ?: getenv('APP_LOCAL_CONFIG_DIR');
-if (empty($local_config_dir)) {
-    throw new Exception('Environment variable "APP_LOCAL_CONFIG_DIR" has not been set.');
+if (!$is_standalone) {
+    $local_config_dir = @$local_config_dir ?: getenv('APP_LOCAL_CONFIG_DIR');
+    if (empty($local_config_dir)) {
+        throw new Exception('Environment variable "APP_LOCAL_CONFIG_DIR" has not been set.');
+    }
 }
 
 // determine application directory
@@ -13,7 +15,9 @@ if (empty($application_dir)) {
 }
 
 $application_dir = realpath($application_dir);
-$local_config_dir = realpath($local_config_dir);
+if (!$is_standalone) {
+    $local_config_dir = realpath($local_config_dir);
+}
 $vendor_dir = $application_dir . '/vendor';
 $agavi_dir = $vendor_dir . '/agavi/agavi/src';
 $honeybee_dir = $vendor_dir . '/honeybee/honeybee-agavi-cmf-vendor';
@@ -41,7 +45,9 @@ AgaviConfig::set('core.environment', $environment);
 AgaviConfig::set('core.agavi_dir', $agavi_dir);
 AgaviConfig::set('core.app_dir', $application_dir . '/app');
 AgaviConfig::set('core.pub_dir', $application_dir . '/pub');
-AgaviConfig::set('core.local_config_dir', $local_config_dir);
+if (!$is_standalone) {
+    AgaviConfig::set('core.local_config_dir', $local_config_dir);
+}
 AgaviConfig::set('core.config_dir', AgaviConfig::get('core.app_dir') . '/config');
 AgaviConfig::set('core.modules_dir', AgaviConfig::get('core.app_dir') . '/modules');
 AgaviConfig::set('core.module_dir', AgaviConfig::get('core.app_dir') . '/modules');

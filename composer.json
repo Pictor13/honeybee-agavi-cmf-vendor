@@ -93,7 +93,7 @@
         "js": "bin/cli honeybee.core.util.compile_js",
         "init-standalone": [
             "@config-build",
-            "npm install --global-style",
+            "npm install --prefix ./vendor ./ --global-style",
             "cp -r node_modules vendor/",
             "@css",
             "@js",

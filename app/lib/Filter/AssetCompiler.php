@@ -37,8 +37,9 @@ class AssetCompiler
     public function symlinkModuleAssets()
     {
         $old_cwd = getcwd();
-
+var_dump('OLDCWD: ' . $old_cwd);
         $cms_dir = AgaviConfig::get('core.cms_dir');
+var_dump('CMSDIR: ' . $cms_dir);
 
         $target_location = $this->getPubStaticModuleAssetsFolder();
         if (!chdir($target_location)) {
@@ -48,11 +49,14 @@ class AssetCompiler
         foreach (self::getAvailableModuleDirectories() as $module_directory) {
             $module_name = basename($module_directory);
             $target_module_name = $module_name;
-
+var_dump($module_directory, $module_name, $target_module_name);
             // check for existing symlinks or symlink the module's assets folder
             if (is_readable($target_module_name)) {
+var_dump($target_module_name . ' IS READABLE');
                 if (is_link($target_module_name)) {
+var_dump($target_module_name . ' IS A SYMLINK');
                     $link_target_path = realpath(readlink($target_module_name));
+var_dump($link_target_path . ' IS THE REALPATH');
                     if (mb_strpos($link_target_path, $cms_dir) !== 0) { // symlink target must start with cms_dir
                         throw new RuntimeException(
                             'Linked module "' . $module_name . '" does not ' .
@@ -67,7 +71,16 @@ class AssetCompiler
                 }
             } else {
                 $assets_dir = '../../../app/modules/' . $module_name . '/assets';
+var_dump('TRY TO SYMLINK ' . $assets_dir . ' to ' . $target_module_name);
                 if (is_readable($assets_dir)) {
+                    if (!symlink($assets_dir, $target_module_name)) {
+                        chdir($old_cwd);
+                        throw new RuntimeException(
+                            'The symlinking of "' . $module_name . '/assets" to ' .
+                            '"pub/static/' . $target_module_name . '" failed!'
+                        );
+                    }
+                    // 
                     if (!symlink($assets_dir, $target_module_name)) {
                         chdir($old_cwd);
                         throw new RuntimeException(

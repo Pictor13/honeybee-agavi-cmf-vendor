@@ -2,7 +2,7 @@
   "name": "honeybee",
   "description": "Defines the node/frontend dependencies for honeybee.",
   "author": "Thorsten Schmitt-Rink <thorsten.schmitt-rink@berlinonline.de>",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "license": "MIT",
   "private": true,
   "dependencies": {
@@ -17,5 +17,16 @@
   "files": [
     "README.md"
   ],
-  "engine": "node >= 0.8.x"
+  "scripts": {
+    "start": "/srv/www/ems-bde-cms.local",
+    "testcafe": "testcafe all testing/js/",
+    "test": "jest"
+  },
+  "engine": "node >= 0.8.x",
+  "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.0.0",
+    "babel-core": "^7.0.0-bridge.0",
+    "jest": "^23.6.0"
+  }
 }
