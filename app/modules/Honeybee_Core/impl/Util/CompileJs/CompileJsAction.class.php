@@ -29,7 +29,7 @@ class Honeybee_Core_Util_CompileJsAction extends Action
             // just in case
             $packer->symlinkModuleAssets();
 
-            // render buildconfig.js and put it into the target location for compilation
+            // render from buildconfig.js.twig and put it into the target location for compilation
             $template_service = new ModuleTemplateRenderer();
             $buildconfig_content = $template_service->render('rjs/buildconfig.js');
             $success = file_put_contents($buildfile_path, $buildconfig_content, LOCK_EX);

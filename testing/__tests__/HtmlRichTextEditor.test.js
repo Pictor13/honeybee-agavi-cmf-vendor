@@ -1,3 +1,6 @@
+// var util = require('util');
+// useless, doesn't work -> jest.autoMockOff();  // enable console.log (https://stackoverflow.com/questions/28371741/why-cant-i-see-console-log-output-when-testing-node-apps-with-jest)
+
 if (process.stdout._handle) process.stdout._handle.setBlocking(true);   // https://stackoverflow.com/questions/5127532/is-node-js-console-log-asynchronous
 
 
@@ -7,7 +10,7 @@ if (process.stdout._handle) process.stdout._handle.setBlocking(true);   // https
 jest.mock('vm'); // prevent "requirejsVars is not defined" (see: https://github.com/facebook/jest/issues/1914)
 
 // @todo Use AMDefine? Or stick to the plugin?
-var requirejs = require('requirejs');   
+var requirejs = require('requirejs');
 
 
 requirejs.onError = function (err) {
@@ -18,24 +21,27 @@ requirejs.onError = function (err) {
     }   
 };
 
+console.log('BASEURL - ' + __dirname + "/../../pub/static/modules/");
 
 requirejs.config({
-    catchError:true,
-        //Pass the top-level main.js/index.js require
-        //function to requirejs so that node modules
-        //are loaded relative to the top-level JS file.
-        nodeRequire: require,
+    mainConfigFile: __dirname + "/../../pub/static/modules/buildconfig.js",
 
-        // @todo: the following config should generated via TWIG template "requirejs_config"
-        //        (custom action? maybe generate/cache when building assets?)
-        baseUrl: __dirname + "/../../pub/static/modules/",
-        // urlArgs: "cb=" +  (new Date()).getTime(),
-        lodashLoader: {
+    nodeRequire: require,
+    catchError:true,
+    //Pass the top-level main.js/index.js require
+    //function to requirejs so that node modules
+    //are loaded relative to the top-level JS file.
+    nodeRequire: require,
+
+    // @todo: the following config should generated via TWIG template "requirejs_config"; especially 'paths'.
+    //        (custom action? maybe generate/cache when building assets?)
+    baseUrl: __dirname + "/../../pub/static/modules/",
+    // urlArgs: "cb=" +  (new Date()).getTime(),
+    lodashLoader: {
 ext: ".html",       // for lodash templates
         // root: __dirname + "/../../pub/static/modules/",
         templateSettings: {}
     },
-
 
     waitSeconds: 30,
     paths: {
@@ -63,6 +69,7 @@ ext: ".html",       // for lodash templates
         "mapbox-gl": "Bo_Tb/lib/mapbox-gl",
     },
     shim: {
+        /* The following deps support ADM loading style. No need to specify shims for them.
         "jsb": {
             deps: ["jquery"],
             exports: "jsb"
@@ -73,14 +80,8 @@ ext: ".html",       // for lodash templates
         "magnific-popup": {
             deps: ["jquery"]
         },
-        "stickyfill": {
-            deps: ["jquery"]
-        },
         "jquery-mousewheel": {
             deps: ["jquery"]
-        },
-        "php-date-formatter": {
-            "deps": ["jquery"]
         },
         "leaflet": {
             "deps": ["jquery"]
@@ -95,8 +96,14 @@ ext: ".html",       // for lodash templates
                 "php-date-formatter"
             ]
         },
+        */
+        "stickyfill": {
+            deps: ["jquery"]
+        },
+        "php-date-formatter": {
+            "deps": ["jquery"]
+        },
     }
-
 });
 
 // Widgets definition
@@ -210,7 +217,7 @@ function   ($,   bar) {
     //config, but if not found, then node's require
     //is used to load the module.
 
-+throw "debug thrown error";
+throw "debug thrown error";
     // need jQuery
     // need honeybee/widgets
 

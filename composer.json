@@ -73,7 +73,8 @@
         "squizlabs/php_codesniffer": "^2.8",
         "mockery/mockery": "^0.9.9 || ^1.0",
         "symfony/css-selector": "^3.2",
-        "symfony/dom-crawler": "^3.2"
+        "symfony/dom-crawler": "^3.2",
+        "php-amqplib/php-amqplib": "^2.7.1"
     },
 
     "scripts": {
@@ -90,11 +91,10 @@
         "config-build": "bin/cli honeybee.core.util.build_config --recovery",
         "validate-deps": "composer validate --with-dependencies --strict",
         "css": "bin/cli honeybee.core.util.compile_scss",
-        "js": "bin/cli honeybee.core.util.compile_js",
+        "js": "bin/cli honeybee.core.util.compile_js -buildfile_path /static/buildconfig.js",
         "init-standalone": [
             "@config-build",
             "npm install --prefix ./vendor ./ --global-style",
-            "cp -r node_modules vendor/",
             "@css",
             "@js",
             "bin/wget_packages",

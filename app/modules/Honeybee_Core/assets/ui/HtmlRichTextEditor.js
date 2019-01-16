@@ -93,7 +93,7 @@ define([
         counter_enabled: false,
         // the original textarea element that will be hidden
         textarea_selector: 'textarea',
-        hide_textarea: true,
+hide_textarea: false,
         // element that will be used as editor for the textarea content
         editor_selector: '.editor-hrte',
         // Squire options to use
@@ -371,6 +371,11 @@ define([
         this.updateUI();
 
         this.$widget.show();
+
+
+
+this.$widget[0].widget = this;
+window.widget = this;
     }
 
     HtmlRichTextEditor.prototype = new Widget();
@@ -640,7 +645,7 @@ define([
     // changes to Squire config should be correctly reflected in DOMPurify config
     HtmlRichTextEditor.prototype.keepDompurifyConfigConsistent = function(options) {
         var squire_config = this.options.squire_config;
-        var default_config = default_config;
+        var default_config = this.options.dompurify_config;
         var sync_config = this.options.dompurify_sync_config;
         var paste_config = this.options.dompurify_paste_config;
         // ensure DOMPurify doesn't forbid the blockTag configured for Squire
@@ -748,6 +753,8 @@ define([
                 '<div>Simple div</div>',
                 '<div class="hb-paragraph"><br></div> Empty-line and some text',
                 'span',
+                '<a href="https://github.com">Link</a>',
+                '<a href="https://github.com" target="_blank">Link in new window</a>'
             ];
             for(var index in unchanging_fixtures) {
                 var fixture = unchanging_fixtures[index];
@@ -768,6 +775,7 @@ define([
                 '<div class="hb-paragraph"><br></div>': '',
                 '<span>': '',
                 '<span>foo</span>': 'foo',
+                '<div>foo</div>': '<div>foo</div>',
                 '<div style="display:none;">foo</div>': '<div>foo</div>',
                 '<button style="display:none;" onclick="maliciousFunction();">foo</button>': 'foo'
             };
@@ -782,6 +790,7 @@ define([
         };
 
         var testChangesToEditorConfig = function() {
+            var original_options = this.options;
             // reset options
             this.options = {};
             this.addOptions(default_options, options);
@@ -809,6 +818,10 @@ define([
             if (this.sanitize('<div>Wrap<br>Text</div>') !== 'Wrap<br>Text') {
                 throw 'Test with return value "'+this.sanitize('<div>Wrap<br>Text</div>')+'" doesn\'t reflect the expected value "Wrap<br>Text".';
             }
+
+            this.options = original_options;
+
+            return true;
         };
 
         var compareMarkup = function(markup_a, markup_b) {
